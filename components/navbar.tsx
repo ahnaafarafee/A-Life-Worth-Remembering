@@ -4,11 +4,33 @@ import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import { SignInButton } from "@clerk/nextjs";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GoldButton } from "./gold-button";
+import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
 
 export default function Navbar() {
+  const { user } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [legacyPageId, setLegacyPageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkLegacyPage = async () => {
+      if (user) {
+        try {
+          const response = await fetch("/api/legacy-pages/check");
+          const data = await response.json();
+          if (data.page) {
+            setLegacyPageId(data.page.id);
+          }
+        } catch (error) {
+          console.error("Error checking legacy page:", error);
+        }
+      }
+    };
+
+    checkLegacyPage();
+  }, [user]);
 
   return (
     <header className="relative z-10 border-b border-gold-primary/30">
@@ -46,6 +68,14 @@ export default function Navbar() {
             >
               CONTACT US
             </Link>
+            {legacyPageId && (
+              <Link
+                href={`/legacy-pages/${legacyPageId}`}
+                className="text-gray-700 hover:text-gold-primary transition-colors"
+              >
+                My Legacy Page
+              </Link>
+            )}
             <SignedOut>
               <GoldButton>
                 <SignInButton />
@@ -99,6 +129,15 @@ export default function Navbar() {
             >
               CONTACT US
             </Link>
+            {legacyPageId && (
+              <Link
+                href={`/legacy-pages/${legacyPageId}`}
+                className="text-gray-700 hover:text-gold-primary transition-colors py-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                My Legacy Page
+              </Link>
+            )}
             <SignedOut>
               <GoldButton>
                 <SignInButton />

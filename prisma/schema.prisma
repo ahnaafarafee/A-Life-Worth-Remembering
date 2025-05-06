@@ -3,13 +3,105 @@
 
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
+  relationMode = "prisma"
+}
+
+model User {
+  id          String      @id @default(uuid())
+  clerkUserId String      @unique
+  name        String
+  email       String      @unique
+  legacyPage  LegacyPage?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model LegacyPage {
+  id               String            @id @default(uuid())
+  pageType         String
+  slug             String            @unique
+  honoureeName     String
+  dateOfBirth      DateTime
+  dateOfPassing    DateTime?
+  creatorName      String
+  relationship     String
+  story            String            @db.Text
+  coverPhoto       String?
+  honoureePhoto    String?
+  status           String            @default("draft")
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id])
+  generalKnowledge GeneralKnowledge?
+  mediaItems       MediaItem[]
+  events           Event[]
+  relationships    Relationship[]
+  insights         Insight[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model GeneralKnowledge {
+  id           String     @id @default(uuid())
+  personality  String?    @db.Text
+  values       String?    @db.Text
+  beliefs      String?    @db.Text
+  legacyPageId String     @unique
+  legacyPage   LegacyPage @relation(fields: [legacyPageId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model MediaItem {
+  id           String     @id @default(uuid())
+  type         String // "image", "video", or "audio"
+  url          String
+  dateTaken    DateTime
+  location     String?
+  description  String?    @db.Text
+  legacyPageId String
+  legacyPage   LegacyPage @relation(fields: [legacyPageId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Event {
+  id           String     @id @default(uuid())
+  name         String
+  date         DateTime
+  time         String
+  rsvpBy       DateTime?
+  location     String
+  description  String?    @db.Text
+  message      String?    @db.Text
+  legacyPageId String
+  legacyPage   LegacyPage @relation(fields: [legacyPageId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Relationship {
+  id           String     @id @default(uuid())
+  type         String
+  name         String
+  legacyPageId String
+  legacyPage   LegacyPage @relation(fields: [legacyPageId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Insight {
+  id           String     @id @default(uuid())
+  message      String     @db.Text
+  legacyPageId String
+  legacyPage   LegacyPage @relation(fields: [legacyPageId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
