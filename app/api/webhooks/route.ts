@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
             clerkUserId: id,
             email: email_addresses[0].email_address,
             name: first_name,
-            imageUrl: image_url,
           },
         });
         return new Response(JSON.stringify(newUser), { status: 201 });
