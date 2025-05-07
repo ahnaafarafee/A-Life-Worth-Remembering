@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/prisma/client";
 import { unlink, writeFile } from "fs/promises";
 import { join } from "path";
+import { uploadFile, deleteFile } from "@/lib/supabase";
 
 interface LegacyPage {
   id: string;
@@ -144,15 +145,11 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Get the page to check ownership and get cover photo URL
+    // Get the page to check ownership and get file paths
     const page = await prisma.legacyPage.findUnique({
       where: { id: id },
       include: {
         mediaItems: true,
-        events: true,
-        relationships: true,
-        insights: true,
-        generalKnowledge: true,
       },
     });
 
@@ -165,6 +162,38 @@ export async function DELETE(
         { error: "Unauthorized to delete this page" },
         { status: 403 }
       );
+    }
+
+    // Delete files from Supabase storage
+    try {
+      // Delete cover photo
+      if (page.coverPhoto) {
+        const coverPhotoPath = page.coverPhoto.split("/").pop();
+        if (coverPhotoPath) {
+          await deleteFile("legacy-pages", `cover-photos/${coverPhotoPath}`);
+        }
+      }
+
+      // Delete honouree photo
+      if (page.honoureePhoto) {
+        const honoureePhotoPath = page.honoureePhoto.split("/").pop();
+        if (honoureePhotoPath) {
+          await deleteFile(
+            "legacy-pages",
+            `honouree-photos/${honoureePhotoPath}`
+          );
+        }
+      }
+
+      // Delete media files
+      for (const mediaItem of page.mediaItems) {
+        const mediaPath = mediaItem.url.split("/").pop();
+        if (mediaPath) {
+          await deleteFile("legacy-pages", `media/${mediaPath}`);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting files from storage:", error);
     }
 
     // Delete related data first
@@ -194,26 +223,6 @@ export async function DELETE(
         where: { id: id },
       }),
     ]);
-
-    // Delete the cover photo if it exists
-    if (page.coverPhoto) {
-      const photoPath = join(process.cwd(), "public", page.coverPhoto);
-      try {
-        await unlink(photoPath);
-      } catch (error) {
-        console.error("Error deleting cover photo:", error);
-      }
-    }
-
-    // Delete the honouree photo if it exists
-    if (page.honoureePhoto) {
-      const photoPath = join(process.cwd(), "public", page.honoureePhoto);
-      try {
-        await unlink(photoPath);
-      } catch (error) {
-        console.error("Error deleting honouree photo:", error);
-      }
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -298,38 +307,42 @@ export async function PUT(
       // Delete old cover photo if it exists
       if (existingPage.coverPhoto) {
         try {
-          await unlink(join(process.cwd(), "public", existingPage.coverPhoto));
+          const oldPath = existingPage.coverPhoto.split("/").pop();
+          if (oldPath) {
+            await deleteFile("legacy-pages", `cover-photos/${oldPath}`);
+          }
         } catch (error) {
           console.error("Error deleting old cover photo:", error);
         }
       }
 
-      const bytes = await coverPhoto.arrayBuffer();
-      const buffer = Buffer.from(bytes);
       const fileName = `${Date.now()}-${coverPhoto.name}`;
-      const path = join(process.cwd(), "public", "uploads", fileName);
-      await writeFile(path, buffer);
-      coverPhotoPath = `/uploads/${fileName}`;
+      coverPhotoPath = await uploadFile(
+        coverPhoto,
+        "legacy-pages",
+        `cover-photos/${fileName}`
+      );
     }
 
     if (honoureePhoto) {
       // Delete old honouree photo if it exists
       if (existingPage.honoureePhoto) {
         try {
-          await unlink(
-            join(process.cwd(), "public", existingPage.honoureePhoto)
-          );
+          const oldPath = existingPage.honoureePhoto.split("/").pop();
+          if (oldPath) {
+            await deleteFile("legacy-pages", `honouree-photos/${oldPath}`);
+          }
         } catch (error) {
           console.error("Error deleting old honouree photo:", error);
         }
       }
 
-      const bytes = await honoureePhoto.arrayBuffer();
-      const buffer = Buffer.from(bytes);
       const fileName = `${Date.now()}-${honoureePhoto.name}`;
-      const path = join(process.cwd(), "public", "uploads", fileName);
-      await writeFile(path, buffer);
-      honoureePhotoPath = `/uploads/${fileName}`;
+      honoureePhotoPath = await uploadFile(
+        honoureePhoto,
+        "legacy-pages",
+        `honouree-photos/${fileName}`
+      );
     }
 
     // Update legacy page
@@ -379,6 +392,23 @@ export async function PUT(
     // Update media items
     const mediaItems = formData.getAll("mediaItems[0][type]");
     if (mediaItems.length > 0) {
+      // Get existing media items to delete their files
+      const existingMediaItems = await prisma.mediaItem.findMany({
+        where: { legacyPageId: params.id },
+      });
+
+      // Delete existing media files
+      for (const item of existingMediaItems) {
+        try {
+          const oldPath = item.url.split("/").pop();
+          if (oldPath) {
+            await deleteFile("legacy-pages", `media/${oldPath}`);
+          }
+        } catch (error) {
+          console.error("Error deleting old media file:", error);
+        }
+      }
+
       // Delete existing media items
       await prisma.mediaItem.deleteMany({
         where: { legacyPageId: params.id },
@@ -395,12 +425,12 @@ export async function PUT(
         ) as string;
 
         if (file) {
-          const bytes = await file.arrayBuffer();
-          const buffer = Buffer.from(bytes);
           const fileName = `${Date.now()}-${file.name}`;
-          const path = join(process.cwd(), "public", "uploads", fileName);
-          await writeFile(path, buffer);
-          const url = `/uploads/${fileName}`;
+          const url = await uploadFile(
+            file,
+            "legacy-pages",
+            `media/${fileName}`
+          );
 
           await prisma.mediaItem.create({
             data: {

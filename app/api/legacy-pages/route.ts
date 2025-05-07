@@ -3,6 +3,7 @@ import { writeFile } from "fs/promises";
 import { join } from "path";
 import prisma from "@/prisma/client";
 import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 interface LegacyPage {
   id: string;
@@ -75,18 +76,50 @@ export async function POST(request: Request) {
       const bytes = await coverPhoto.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const fileName = `${Date.now()}-${coverPhoto.name}`;
-      const path = join(process.cwd(), "public", "uploads", fileName);
-      await writeFile(path, buffer);
-      coverPhotoPath = `/uploads/${fileName}`;
+      const path = `cover-photos/${fileName}`;
+
+      const { data, error } = await supabaseAdmin.storage
+        .from("legacy-pages")
+        .upload(path, buffer, {
+          contentType: coverPhoto.type,
+          upsert: true,
+        });
+
+      if (error) {
+        console.error("Upload error:", error);
+        throw error;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabaseAdmin.storage.from("legacy-pages").getPublicUrl(path);
+
+      coverPhotoPath = publicUrl;
     }
 
     if (honoureePhoto) {
       const bytes = await honoureePhoto.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const fileName = `${Date.now()}-${honoureePhoto.name}`;
-      const path = join(process.cwd(), "public", "uploads", fileName);
-      await writeFile(path, buffer);
-      honoureePhotoPath = `/uploads/${fileName}`;
+      const path = `honouree-photos/${fileName}`;
+
+      const { data, error } = await supabaseAdmin.storage
+        .from("legacy-pages")
+        .upload(path, buffer, {
+          contentType: honoureePhoto.type,
+          upsert: true,
+        });
+
+      if (error) {
+        console.error("Upload error:", error);
+        throw error;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabaseAdmin.storage.from("legacy-pages").getPublicUrl(path);
+
+      honoureePhotoPath = publicUrl;
     }
 
     // Create legacy page with related records
@@ -131,24 +164,39 @@ export async function POST(request: Request) {
         `mediaItems[${i}][description]`
       ) as string;
 
-      // Handle media file upload
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const fileName = `${Date.now()}-${file.name}`;
-      const path = join(process.cwd(), "public", "uploads", fileName);
-      await writeFile(path, buffer);
-      const url = `/uploads/${fileName}`;
+      if (file) {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const fileName = `${Date.now()}-${file.name}`;
+        const path = `media/${fileName}`;
 
-      await prisma.mediaItem.create({
-        data: {
-          type,
-          url,
-          dateTaken: new Date(dateTaken),
-          location,
-          description,
-          legacyPageId: pageId,
-        },
-      });
+        const { data, error } = await supabaseAdmin.storage
+          .from("legacy-pages")
+          .upload(path, buffer, {
+            contentType: file.type,
+            upsert: true,
+          });
+
+        if (error) {
+          console.error("Upload error:", error);
+          throw error;
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabaseAdmin.storage.from("legacy-pages").getPublicUrl(path);
+
+        await prisma.mediaItem.create({
+          data: {
+            type,
+            url: publicUrl,
+            dateTaken: new Date(dateTaken),
+            location,
+            description,
+            legacyPageId: pageId,
+          },
+        });
+      }
     }
 
     // Create events
