@@ -34,23 +34,21 @@ export async function POST(request: Request) {
     const coverPhoto = formData.get("coverPhoto") as File;
     const honoureePhoto = formData.get("honoureePhoto") as File;
 
-    // Check if user exists using raw SQL
-    const users = await prisma.$queryRaw<User[]>`
-      SELECT id FROM User WHERE clerkUserId = ${userId} LIMIT 1
-    `;
+    // Check if user exists
+    const user = await prisma.user.findFirst({
+      where: { clerkUserId: userId },
+    });
 
-    if (!users || users.length === 0) {
+    if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    const user = users[0];
-
     // Check if user already has a legacy page
-    const existingPage = await prisma.$queryRaw<LegacyPage[]>`
-      SELECT * FROM LegacyPage WHERE userId = ${user.id} LIMIT 1
-    `;
+    const existingPage = await prisma.legacyPage.findFirst({
+      where: { userId: user.id },
+    });
 
-    if (existingPage && existingPage.length > 0) {
+    if (existingPage) {
       return NextResponse.json(
         { message: "User already has a legacy page" },
         { status: 400 }
@@ -58,11 +56,11 @@ export async function POST(request: Request) {
     }
 
     // Check if slug is unique
-    const existingSlug = await prisma.$queryRaw<LegacyPage[]>`
-      SELECT * FROM LegacyPage WHERE slug = ${slug} LIMIT 1
-    `;
+    const existingSlug = await prisma.legacyPage.findFirst({
+      where: { slug },
+    });
 
-    if (existingSlug && existingSlug.length > 0) {
+    if (existingSlug) {
       return NextResponse.json(
         { message: "This page URL is already taken" },
         { status: 400 }
@@ -92,35 +90,34 @@ export async function POST(request: Request) {
     }
 
     // Create legacy page with related records
-    await prisma.$queryRaw`
-      INSERT INTO LegacyPage (
-        id, pageType, slug, honoureeName, dateOfBirth, dateOfPassing,
-        creatorName, relationship, story, coverPhoto, honoureePhoto,
-        userId, createdAt, updatedAt
-      ) VALUES (
-        UUID(), ${pageType}, ${slug}, ${honoureeName}, ${new Date(dateOfBirth)},
-        ${dateOfPassing ? new Date(dateOfPassing) : null}, ${creatorName},
-        ${relationship}, ${story}, ${coverPhotoPath}, ${honoureePhotoPath},
-        ${user.id}, NOW(), NOW()
-      )
-    `;
+    const createdPage = await prisma.legacyPage.create({
+      data: {
+        pageType,
+        slug,
+        honoureeName,
+        dateOfBirth: new Date(dateOfBirth),
+        dateOfPassing: dateOfPassing ? new Date(dateOfPassing) : null,
+        creatorName,
+        relationship,
+        story,
+        coverPhoto: coverPhotoPath,
+        honoureePhoto: honoureePhotoPath,
+        userId: user.id,
+      },
+    });
 
-    // Get the created page ID
-    const createdPage = await prisma.$queryRaw<LegacyPage[]>`
-      SELECT id FROM LegacyPage WHERE userId = ${user.id} ORDER BY createdAt DESC LIMIT 1
-    `;
-
-    const pageId = createdPage[0].id;
+    const pageId = createdPage.id;
 
     // Create general knowledge
     if (personality || values || beliefs) {
-      await prisma.$queryRaw`
-        INSERT INTO GeneralKnowledge (
-          id, personality, \`values\`, beliefs, legacyPageId, createdAt, updatedAt
-        ) VALUES (
-          UUID(), ${personality}, ${values}, ${beliefs}, ${pageId}, NOW(), NOW()
-        )
-      `;
+      await prisma.generalKnowledge.create({
+        data: {
+          personality,
+          values,
+          beliefs,
+          legacyPageId: pageId,
+        },
+      });
     }
 
     // Create media items
@@ -142,15 +139,16 @@ export async function POST(request: Request) {
       await writeFile(path, buffer);
       const url = `/uploads/${fileName}`;
 
-      await prisma.$queryRaw`
-        INSERT INTO MediaItem (
-          id, type, url, dateTaken, location, description,
-          legacyPageId, createdAt, updatedAt
-        ) VALUES (
-          UUID(), ${type}, ${url}, ${new Date(dateTaken)}, ${location},
-          ${description}, ${pageId}, NOW(), NOW()
-        )
-      `;
+      await prisma.mediaItem.create({
+        data: {
+          type,
+          url,
+          dateTaken: new Date(dateTaken),
+          location,
+          description,
+          legacyPageId: pageId,
+        },
+      });
     }
 
     // Create events
@@ -164,16 +162,18 @@ export async function POST(request: Request) {
       const description = formData.get(`events[${i}][description]`) as string;
       const message = formData.get(`events[${i}][message]`) as string;
 
-      await prisma.$queryRaw`
-        INSERT INTO Event (
-          id, name, date, time, rsvpBy, location, description,
-          message, legacyPageId, createdAt, updatedAt
-        ) VALUES (
-          UUID(), ${name}, ${new Date(date)}, ${time},
-          ${rsvpBy ? new Date(rsvpBy) : null}, ${location},
-          ${description}, ${message}, ${pageId}, NOW(), NOW()
-        )
-      `;
+      await prisma.event.create({
+        data: {
+          name,
+          date: new Date(date),
+          time,
+          rsvpBy: rsvpBy ? new Date(rsvpBy) : null,
+          location,
+          description,
+          message,
+          legacyPageId: pageId,
+        },
+      });
     }
 
     // Create relationships
@@ -182,13 +182,13 @@ export async function POST(request: Request) {
       const type = formData.get(`relationships[${i}][type]`) as string;
       const name = formData.get(`relationships[${i}][name]`) as string;
 
-      await prisma.$queryRaw`
-        INSERT INTO Relationship (
-          id, type, name, legacyPageId, createdAt, updatedAt
-        ) VALUES (
-          UUID(), ${type}, ${name}, ${pageId}, NOW(), NOW()
-        )
-      `;
+      await prisma.relationship.create({
+        data: {
+          type,
+          name,
+          legacyPageId: pageId,
+        },
+      });
     }
 
     // Create insights
@@ -196,13 +196,12 @@ export async function POST(request: Request) {
     for (let i = 0; i < insights.length; i++) {
       const message = formData.get(`insights[${i}][message]`) as string;
 
-      await prisma.$queryRaw`
-        INSERT INTO Insight (
-          id, message, legacyPageId, createdAt, updatedAt
-        ) VALUES (
-          UUID(), ${message}, ${pageId}, NOW(), NOW()
-        )
-      `;
+      await prisma.insight.create({
+        data: {
+          message,
+          legacyPageId: pageId,
+        },
+      });
     }
 
     return NextResponse.json({ id: pageId });
@@ -222,22 +221,20 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user exists using raw SQL
-    const users = await prisma.$queryRaw<User[]>`
-      SELECT id FROM User WHERE clerkUserId = ${userId} LIMIT 1
-    `;
+    // Check if user exists
+    const user = await prisma.user.findFirst({
+      where: { clerkUserId: userId },
+    });
 
-    if (!users || users.length === 0) {
+    if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    const user = users[0];
+    const page = await prisma.legacyPage.findFirst({
+      where: { userId: user.id },
+    });
 
-    const page = await prisma.$queryRaw<LegacyPage[]>`
-      SELECT * FROM LegacyPage WHERE userId = ${user.id} LIMIT 1
-    `;
-
-    return NextResponse.json({ page: page[0] || null });
+    return NextResponse.json({ page });
   } catch (error) {
     console.error("Error checking legacy page:", error);
     return NextResponse.json(

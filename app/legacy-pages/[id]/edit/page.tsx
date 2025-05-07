@@ -17,11 +17,14 @@ export default async function EditPage({ params }: { params: { id: string } }) {
     redirect("/sign-in");
   }
 
-  const page = await prisma.$queryRaw`
-    SELECT * FROM LegacyPage WHERE id = ${params.id} AND userId = ${user.id} LIMIT 1
-  `;
+  const page = await prisma.legacyPage.findFirst({
+    where: {
+      id: params.id,
+      userId: user.id,
+    },
+  });
 
-  if (!page || page.length === 0) {
+  if (!page) {
     redirect("/");
   }
 

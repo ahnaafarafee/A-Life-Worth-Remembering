@@ -17,13 +17,18 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const page = await prisma.$queryRaw`
-      SELECT * FROM LegacyPage WHERE userId = ${user.id} LIMIT 1
-    `;
-
-    return NextResponse.json({
-      page: Array.isArray(page) && page.length > 0 ? page[0] : null,
+    const page = await prisma.legacyPage.findFirst({
+      where: { userId: user.id },
+      include: {
+        generalKnowledge: true,
+        mediaItems: true,
+        events: true,
+        relationships: true,
+        insights: true,
+      },
     });
+
+    return NextResponse.json({ page });
   } catch (error) {
     console.error("Error checking legacy page:", error);
     return NextResponse.json(

@@ -244,11 +244,14 @@ export async function PUT(
     }
 
     // Check if the page exists and belongs to the user
-    const existingPage = await prisma.$queryRaw<LegacyPage[]>`
-      SELECT * FROM LegacyPage WHERE id = ${params.id} AND userId = ${user.id} LIMIT 1
-    `;
+    const existingPage = await prisma.legacyPage.findFirst({
+      where: {
+        id: params.id,
+        userId: user.id,
+      },
+    });
 
-    if (!existingPage || existingPage.length === 0) {
+    if (!existingPage) {
       return NextResponse.json(
         { message: "Legacy page not found or unauthorized" },
         { status: 404 }
@@ -271,12 +274,15 @@ export async function PUT(
     const honoureePhoto = formData.get("honoureePhoto") as File;
 
     // Check if slug is unique (excluding current page)
-    if (slug !== existingPage[0].slug) {
-      const existingSlug = await prisma.$queryRaw<LegacyPage[]>`
-        SELECT * FROM LegacyPage WHERE slug = ${slug} AND id != ${params.id} LIMIT 1
-      `;
+    if (slug !== existingPage.slug) {
+      const existingSlug = await prisma.legacyPage.findFirst({
+        where: {
+          slug: slug,
+          id: { not: params.id },
+        },
+      });
 
-      if (existingSlug && existingSlug.length > 0) {
+      if (existingSlug) {
         return NextResponse.json(
           { message: "This page URL is already taken" },
           { status: 400 }
@@ -285,16 +291,14 @@ export async function PUT(
     }
 
     // Handle file uploads
-    let coverPhotoPath = existingPage[0].coverPhoto;
-    let honoureePhotoPath = existingPage[0].honoureePhoto;
+    let coverPhotoPath = existingPage.coverPhoto;
+    let honoureePhotoPath = existingPage.honoureePhoto;
 
     if (coverPhoto) {
       // Delete old cover photo if it exists
-      if (existingPage[0].coverPhoto) {
+      if (existingPage.coverPhoto) {
         try {
-          await unlink(
-            join(process.cwd(), "public", existingPage[0].coverPhoto)
-          );
+          await unlink(join(process.cwd(), "public", existingPage.coverPhoto));
         } catch (error) {
           console.error("Error deleting old cover photo:", error);
         }
@@ -310,10 +314,10 @@ export async function PUT(
 
     if (honoureePhoto) {
       // Delete old honouree photo if it exists
-      if (existingPage[0].honoureePhoto) {
+      if (existingPage.honoureePhoto) {
         try {
           await unlink(
-            join(process.cwd(), "public", existingPage[0].honoureePhoto)
+            join(process.cwd(), "public", existingPage.honoureePhoto)
           );
         } catch (error) {
           console.error("Error deleting old honouree photo:", error);
@@ -329,55 +333,56 @@ export async function PUT(
     }
 
     // Update legacy page
-    await prisma.$queryRaw`
-      UPDATE LegacyPage
-      SET
-        pageType = ${pageType},
-        slug = ${slug},
-        honoureeName = ${honoureeName},
-        dateOfBirth = ${new Date(dateOfBirth)},
-        dateOfPassing = ${dateOfPassing ? new Date(dateOfPassing) : null},
-        creatorName = ${creatorName},
-        relationship = ${relationship},
-        story = ${story},
-        coverPhoto = ${coverPhotoPath},
-        honoureePhoto = ${honoureePhotoPath},
-        updatedAt = NOW()
-      WHERE id = ${params.id}
-    `;
+    await prisma.legacyPage.update({
+      where: { id: params.id },
+      data: {
+        pageType,
+        slug,
+        honoureeName,
+        dateOfBirth: new Date(dateOfBirth),
+        dateOfPassing: dateOfPassing ? new Date(dateOfPassing) : null,
+        creatorName,
+        relationship,
+        story,
+        coverPhoto: coverPhotoPath,
+        honoureePhoto: honoureePhotoPath,
+        updatedAt: new Date(),
+      },
+    });
 
     // Update general knowledge
-    const generalKnowledge = await prisma.$queryRaw<GeneralKnowledge[]>`
-      SELECT * FROM GeneralKnowledge WHERE legacyPageId = ${params.id} LIMIT 1
-    `;
+    const generalKnowledge = await prisma.generalKnowledge.findFirst({
+      where: { legacyPageId: params.id },
+    });
 
-    if (generalKnowledge && generalKnowledge.length > 0) {
-      await prisma.$queryRaw`
-        UPDATE GeneralKnowledge
-        SET
-          personality = ${personality},
-          \`values\` = ${values},
-          beliefs = ${beliefs},
-          updatedAt = NOW()
-        WHERE legacyPageId = ${params.id}
-      `;
+    if (generalKnowledge) {
+      await prisma.generalKnowledge.update({
+        where: { legacyPageId: params.id },
+        data: {
+          personality,
+          values,
+          beliefs,
+          updatedAt: new Date(),
+        },
+      });
     } else {
-      await prisma.$queryRaw`
-        INSERT INTO GeneralKnowledge (
-          id, personality, \`values\`, beliefs, legacyPageId, createdAt, updatedAt
-        ) VALUES (
-          UUID(), ${personality}, ${values}, ${beliefs}, ${params.id}, NOW(), NOW()
-        )
-      `;
+      await prisma.generalKnowledge.create({
+        data: {
+          personality,
+          values,
+          beliefs,
+          legacyPageId: params.id,
+        },
+      });
     }
 
     // Update media items
     const mediaItems = formData.getAll("mediaItems[0][type]");
     if (mediaItems.length > 0) {
       // Delete existing media items
-      await prisma.$queryRaw`
-        DELETE FROM MediaItem WHERE legacyPageId = ${params.id}
-      `;
+      await prisma.mediaItem.deleteMany({
+        where: { legacyPageId: params.id },
+      });
 
       // Create new media items
       for (let i = 0; i < mediaItems.length; i++) {
@@ -397,15 +402,16 @@ export async function PUT(
           await writeFile(path, buffer);
           const url = `/uploads/${fileName}`;
 
-          await prisma.$queryRaw`
-            INSERT INTO MediaItem (
-              id, type, url, dateTaken, location, description,
-              legacyPageId, createdAt, updatedAt
-            ) VALUES (
-              UUID(), ${type}, ${url}, ${new Date(dateTaken)}, ${location},
-              ${description}, ${params.id}, NOW(), NOW()
-            )
-          `;
+          await prisma.mediaItem.create({
+            data: {
+              type,
+              url,
+              dateTaken: new Date(dateTaken),
+              location,
+              description,
+              legacyPageId: params.id,
+            },
+          });
         }
       }
     }
@@ -414,9 +420,9 @@ export async function PUT(
     const events = formData.getAll("events[0][name]");
     if (events.length > 0) {
       // Delete existing events
-      await prisma.$queryRaw`
-        DELETE FROM Event WHERE legacyPageId = ${params.id}
-      `;
+      await prisma.event.deleteMany({
+        where: { legacyPageId: params.id },
+      });
 
       // Create new events
       for (let i = 0; i < events.length; i++) {
@@ -428,16 +434,18 @@ export async function PUT(
         const description = formData.get(`events[${i}][description]`) as string;
         const message = formData.get(`events[${i}][message]`) as string;
 
-        await prisma.$queryRaw`
-          INSERT INTO Event (
-            id, name, date, time, rsvpBy, location, description,
-            message, legacyPageId, createdAt, updatedAt
-          ) VALUES (
-            UUID(), ${name}, ${new Date(date)}, ${time},
-            ${rsvpBy ? new Date(rsvpBy) : null}, ${location},
-            ${description}, ${message}, ${params.id}, NOW(), NOW()
-          )
-        `;
+        await prisma.event.create({
+          data: {
+            name,
+            date: new Date(date),
+            time,
+            rsvpBy: rsvpBy ? new Date(rsvpBy) : null,
+            location,
+            description,
+            message,
+            legacyPageId: params.id,
+          },
+        });
       }
     }
 
@@ -445,22 +453,22 @@ export async function PUT(
     const relationships = formData.getAll("relationships[0][type]");
     if (relationships.length > 0) {
       // Delete existing relationships
-      await prisma.$queryRaw`
-        DELETE FROM Relationship WHERE legacyPageId = ${params.id}
-      `;
+      await prisma.relationship.deleteMany({
+        where: { legacyPageId: params.id },
+      });
 
       // Create new relationships
       for (let i = 0; i < relationships.length; i++) {
         const type = formData.get(`relationships[${i}][type]`) as string;
         const name = formData.get(`relationships[${i}][name]`) as string;
 
-        await prisma.$queryRaw`
-          INSERT INTO Relationship (
-            id, type, name, legacyPageId, createdAt, updatedAt
-          ) VALUES (
-            UUID(), ${type}, ${name}, ${params.id}, NOW(), NOW()
-          )
-        `;
+        await prisma.relationship.create({
+          data: {
+            type,
+            name,
+            legacyPageId: params.id,
+          },
+        });
       }
     }
 
@@ -468,21 +476,20 @@ export async function PUT(
     const insights = formData.getAll("insights[0][message]");
     if (insights.length > 0) {
       // Delete existing insights
-      await prisma.$queryRaw`
-        DELETE FROM Insight WHERE legacyPageId = ${params.id}
-      `;
+      await prisma.insight.deleteMany({
+        where: { legacyPageId: params.id },
+      });
 
       // Create new insights
       for (let i = 0; i < insights.length; i++) {
         const message = formData.get(`insights[${i}][message]`) as string;
 
-        await prisma.$queryRaw`
-          INSERT INTO Insight (
-            id, message, legacyPageId, createdAt, updatedAt
-          ) VALUES (
-            UUID(), ${message}, ${params.id}, NOW(), NOW()
-          )
-        `;
+        await prisma.insight.create({
+          data: {
+            message,
+            legacyPageId: params.id,
+          },
+        });
       }
     }
 
