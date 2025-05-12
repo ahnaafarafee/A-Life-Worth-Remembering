@@ -98,6 +98,7 @@ export async function GET(
         events: true,
         relationships: true,
         insights: true,
+        memorialDetails: true,
       },
     });
 
@@ -387,6 +388,89 @@ export async function PUT(
           legacyPageId: params.id,
         },
       });
+    }
+
+    // Update memorial details if it's a memorial page
+    if (pageType === "memorial") {
+      const funeralWishes = formData.get("funeralWishes") as string;
+      const obituary = formData.get("obituary") as string;
+      const funeralHome = formData.get("funeralHome") as string;
+      const viewingDate = formData.get("viewingDate") as string;
+      const viewingTime = formData.get("viewingTime") as string;
+      const viewingLocation = formData.get("viewingLocation") as string;
+      const viewingDetails = formData.get("viewingDetails") as string;
+      const processionDate = formData.get("processionDate") as string;
+      const processionTime = formData.get("processionTime") as string;
+      const processionLocation = formData.get("processionLocation") as string;
+      const processionDetails = formData.get("processionDetails") as string;
+      const serviceDate = formData.get("serviceDate") as string;
+      const serviceTime = formData.get("serviceTime") as string;
+      const serviceLocation = formData.get("serviceLocation") as string;
+      const serviceDetails = formData.get("serviceDetails") as string;
+      const finalRestingPlace = formData.get("finalRestingPlace") as string;
+      const finalRestingAddress = formData.get("finalRestingAddress") as string;
+      const finalRestingPlot = formData.get("finalRestingPlot") as string;
+      const finalRestingDetails = formData.get("finalRestingDetails") as string;
+      const eulogy = formData.get("eulogy") as string;
+
+      const memorialDetails = await prisma.memorialDetails.findFirst({
+        where: { legacyPageId: params.id },
+      });
+
+      if (memorialDetails) {
+        await prisma.memorialDetails.update({
+          where: { legacyPageId: params.id },
+          data: {
+            funeralWishes,
+            obituary,
+            funeralHome,
+            viewingDate: viewingDate ? new Date(viewingDate) : null,
+            viewingTime,
+            viewingLocation,
+            viewingDetails,
+            processionDate: processionDate ? new Date(processionDate) : null,
+            processionTime,
+            processionLocation,
+            processionDetails,
+            serviceDate: serviceDate ? new Date(serviceDate) : null,
+            serviceTime,
+            serviceLocation,
+            serviceDetails,
+            finalRestingPlace,
+            finalRestingAddress,
+            finalRestingPlot,
+            finalRestingDetails,
+            eulogy,
+            updatedAt: new Date(),
+          },
+        });
+      } else {
+        await prisma.memorialDetails.create({
+          data: {
+            funeralWishes,
+            obituary,
+            funeralHome,
+            viewingDate: viewingDate ? new Date(viewingDate) : null,
+            viewingTime,
+            viewingLocation,
+            viewingDetails,
+            processionDate: processionDate ? new Date(processionDate) : null,
+            processionTime,
+            processionLocation,
+            processionDetails,
+            serviceDate: serviceDate ? new Date(serviceDate) : null,
+            serviceTime,
+            serviceLocation,
+            serviceDetails,
+            finalRestingPlace,
+            finalRestingAddress,
+            finalRestingPlot,
+            finalRestingDetails,
+            eulogy,
+            legacyPageId: params.id,
+          },
+        });
+      }
     }
 
     // Update media items

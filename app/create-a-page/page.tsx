@@ -10,10 +10,17 @@ import { Upload, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface MediaItem {
-  type: "image" | "video" | "audio";
+  type: "image" | "video";
   file: File;
   dateTaken: string;
   location: string;
+  description: string;
+}
+
+interface SoundClip {
+  file: File;
+  dateRecorded: string;
+  title: string;
   description: string;
 }
 
@@ -23,8 +30,17 @@ interface Event {
   time: string;
   rsvpBy: string;
   location: string;
+  geoCode: string;
+  externalUrl: string;
   description: string;
   message: string;
+  rsvps: {
+    name: string;
+    email: string;
+    attending: boolean;
+    message: string;
+    date: string;
+  }[];
 }
 
 interface Relationship {
@@ -34,6 +50,53 @@ interface Relationship {
 
 interface Insight {
   message: string;
+}
+
+interface CustomField {
+  label: string;
+  value: string;
+}
+
+interface MemorialDetails {
+  funeralWishes: string;
+  obituary: string;
+  funeralHome: string;
+  viewing: {
+    date: string;
+    time: string;
+    location: string;
+    details: string;
+  };
+  procession: {
+    date: string;
+    time: string;
+    route: string;
+    details: string;
+  };
+  service: {
+    date: string;
+    time: string;
+    location: string;
+    details: string;
+  };
+  wake: {
+    date: string;
+    time: string;
+    location: string;
+    details: string;
+  };
+  finalRestingPlace: {
+    name: string;
+    address: string;
+    plot: string;
+    details: string;
+  };
+  eulogy: string;
+  orderOfService: string;
+  familyMessage: string;
+  memorialVideo: string;
+  tributes: string;
+  messageFromHonouree: string;
 }
 
 const RELATIONSHIP_TYPES = [
@@ -80,6 +143,65 @@ export default function CreateAPage() {
     personality: "",
     values: "",
     beliefs: "",
+  });
+  const [isNextOfKin, setIsNextOfKin] = useState(false);
+  const [storyHeading, setStoryHeading] = useState("Story");
+  const [customRelationshipType, setCustomRelationshipType] = useState("");
+  const [showCustomRelationshipInput, setShowCustomRelationshipInput] =
+    useState(false);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [newCustomField, setNewCustomField] = useState({
+    label: "",
+    value: "",
+  });
+  const [soundClips, setSoundClips] = useState<SoundClip[]>([]);
+  const [newSoundClip, setNewSoundClip] = useState<SoundClip>({
+    file: new File([], ""),
+    dateRecorded: "",
+    title: "",
+    description: "",
+  });
+  const [showSoundClipForm, setShowSoundClipForm] = useState(false);
+  const [memorialDetails, setMemorialDetails] = useState<MemorialDetails>({
+    funeralWishes: "",
+    obituary: "",
+    funeralHome: "",
+    viewing: {
+      date: "",
+      time: "",
+      location: "",
+      details: "",
+    },
+    procession: {
+      date: "",
+      time: "",
+      route: "",
+      details: "",
+    },
+    service: {
+      date: "",
+      time: "",
+      location: "",
+      details: "",
+    },
+    wake: {
+      date: "",
+      time: "",
+      location: "",
+      details: "",
+    },
+    finalRestingPlace: {
+      name: "",
+      address: "",
+      plot: "",
+      details: "",
+    },
+    eulogy: "",
+    orderOfService: "",
+    familyMessage: "",
+    memorialVideo: "",
+    tributes: "",
+    messageFromHonouree: "",
   });
 
   useEffect(() => {
@@ -192,8 +314,11 @@ export default function CreateAPage() {
         time: "",
         rsvpBy: "",
         location: "",
+        geoCode: "",
+        externalUrl: "",
         description: "",
         message: "",
+        rsvps: [],
       },
     ]);
   };
@@ -392,10 +517,24 @@ export default function CreateAPage() {
 
         <section className="py-16 md:py-24">
           <div className="container mx-auto px-4">
-            <SectionHeader
-              title="Create A Legacy Page"
-              subtitle="Fill up the form below to create a page for your loved one."
-            />
+            <div className="text-center mb-12">
+              <div className="flex justify-center mb-6">
+                <Image
+                  src="/images/gold-logo.png"
+                  alt="Gold Logo"
+                  width={200}
+                  height={200}
+                  className="object-contain"
+                />
+              </div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                Create A Legacy Page
+              </h1>
+              <p className="text-xl text-gray-600">
+                Take your time to create a meaningful page for yourself or a
+                loved one.
+              </p>
+            </div>
 
             <div className="max-w-4xl mx-auto mb-16">
               {error && (
@@ -534,7 +673,8 @@ export default function CreateAPage() {
                           <p className="pl-1">or drag and drop</p>
                         </div>
                         <p className="text-xs text-gray-500">
-                          PNG, JPG, GIF up to 10MB
+                          PNG, JPG, GIF up to 10MB. Recommended size: 800x800
+                          pixels minimum
                         </p>
                       </div>
                     </div>
@@ -570,9 +710,30 @@ export default function CreateAPage() {
                       htmlFor="isDeceased"
                       className="block text-sm font-medium text-gray-700"
                     >
-                      Honouree is deceased
+                      Honouree has transitioned
                     </label>
                   </div>
+
+                  {(formData.pageType === "biography" ||
+                    formData.pageType === "memorial") && (
+                    <div className="flex items-center space-x-2 mt-4">
+                      <input
+                        type="checkbox"
+                        id="isNextOfKin"
+                        checked={isNextOfKin}
+                        onChange={(e) => setIsNextOfKin(e.target.checked)}
+                        required
+                        className="h-4 w-4 text-gold-primary focus:ring-gold-primary border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor="isNextOfKin"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        I confirm that I am the next of kin and have legal
+                        authority to create this page on behalf of the honouree
+                      </label>
+                    </div>
+                  )}
 
                   {isDeceased && (
                     <div>
@@ -645,7 +806,8 @@ export default function CreateAPage() {
                           <p className="pl-1">or drag and drop</p>
                         </div>
                         <p className="text-xs text-gray-500">
-                          PNG, JPG, GIF up to 10MB
+                          PNG, JPG, GIF up to 10MB. Recommended size: 1920x1080
+                          pixels minimum
                         </p>
                       </div>
                     </div>
@@ -689,18 +851,33 @@ export default function CreateAPage() {
                   </div>
 
                   <div>
+                    <div className="flex items-center space-x-4 mb-2">
+                      <label
+                        htmlFor="storyHeading"
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Section Heading
+                      </label>
+                      <input
+                        type="text"
+                        id="storyHeading"
+                        value={storyHeading}
+                        onChange={(e) => setStoryHeading(e.target.value)}
+                        className="flex-1 px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                        placeholder="Enter section heading"
+                      />
+                    </div>
                     <label
                       htmlFor="story"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Story *
+                      {storyHeading}
                     </label>
                     <textarea
                       id="story"
                       name="story"
                       value={formData.story}
                       onChange={handleChange}
-                      required
                       rows={6}
                       placeholder="Share the story of your loved one..."
                       className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
@@ -712,11 +889,615 @@ export default function CreateAPage() {
                   </div>
                 </div>
 
+                {/* Add Memorial Details section after Basic Information */}
+                {formData.pageType === "memorial" && (
+                  <div className="space-y-6 mt-8">
+                    <h2 className="text-2xl font-semibold text-gray-900">
+                      Memorial Details
+                    </h2>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Funeral Wishes
+                      </label>
+                      <textarea
+                        value={memorialDetails.funeralWishes}
+                        onChange={(e) =>
+                          setMemorialDetails({
+                            ...memorialDetails,
+                            funeralWishes: e.target.value,
+                          })
+                        }
+                        rows={4}
+                        placeholder="Enter any specific wishes for the funeral..."
+                        className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Obituary
+                      </label>
+                      <textarea
+                        value={memorialDetails.obituary}
+                        onChange={(e) =>
+                          setMemorialDetails({
+                            ...memorialDetails,
+                            obituary: e.target.value,
+                          })
+                        }
+                        rows={6}
+                        placeholder="Enter the obituary text..."
+                        className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Funeral Home
+                      </label>
+                      <input
+                        type="text"
+                        value={memorialDetails.funeralHome}
+                        onChange={(e) =>
+                          setMemorialDetails({
+                            ...memorialDetails,
+                            funeralHome: e.target.value,
+                          })
+                        }
+                        placeholder="Enter the funeral home name and contact information"
+                        className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                      />
+                    </div>
+
+                    {/* Viewing Details */}
+                    <div className="border-2 border-gold-primary rounded-md p-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Viewing Details
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Date
+                            </label>
+                            <input
+                              type="date"
+                              value={memorialDetails.viewing.date}
+                              onChange={(e) =>
+                                setMemorialDetails({
+                                  ...memorialDetails,
+                                  viewing: {
+                                    ...memorialDetails.viewing,
+                                    date: e.target.value,
+                                  },
+                                })
+                              }
+                              className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Time
+                            </label>
+                            <input
+                              type="time"
+                              value={memorialDetails.viewing.time}
+                              onChange={(e) =>
+                                setMemorialDetails({
+                                  ...memorialDetails,
+                                  viewing: {
+                                    ...memorialDetails.viewing,
+                                    time: e.target.value,
+                                  },
+                                })
+                              }
+                              className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Location
+                          </label>
+                          <input
+                            type="text"
+                            value={memorialDetails.viewing.location}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                viewing: {
+                                  ...memorialDetails.viewing,
+                                  location: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Additional Details
+                          </label>
+                          <textarea
+                            value={memorialDetails.viewing.details}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                viewing: {
+                                  ...memorialDetails.viewing,
+                                  details: e.target.value,
+                                },
+                              })
+                            }
+                            rows={3}
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Procession Details */}
+                    <div className="border-2 border-gold-primary rounded-md p-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Procession Details
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Date
+                            </label>
+                            <input
+                              type="date"
+                              value={memorialDetails.procession.date}
+                              onChange={(e) =>
+                                setMemorialDetails({
+                                  ...memorialDetails,
+                                  procession: {
+                                    ...memorialDetails.procession,
+                                    date: e.target.value,
+                                  },
+                                })
+                              }
+                              className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Time
+                            </label>
+                            <input
+                              type="time"
+                              value={memorialDetails.procession.time}
+                              onChange={(e) =>
+                                setMemorialDetails({
+                                  ...memorialDetails,
+                                  procession: {
+                                    ...memorialDetails.procession,
+                                    time: e.target.value,
+                                  },
+                                })
+                              }
+                              className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Route
+                          </label>
+                          <input
+                            type="text"
+                            value={memorialDetails.procession.route}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                procession: {
+                                  ...memorialDetails.procession,
+                                  route: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Additional Details
+                          </label>
+                          <textarea
+                            value={memorialDetails.procession.details}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                procession: {
+                                  ...memorialDetails.procession,
+                                  details: e.target.value,
+                                },
+                              })
+                            }
+                            rows={3}
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Service Details */}
+                    <div className="border-2 border-gold-primary rounded-md p-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Service Details
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Date
+                            </label>
+                            <input
+                              type="date"
+                              value={memorialDetails.service.date}
+                              onChange={(e) =>
+                                setMemorialDetails({
+                                  ...memorialDetails,
+                                  service: {
+                                    ...memorialDetails.service,
+                                    date: e.target.value,
+                                  },
+                                })
+                              }
+                              className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Time
+                            </label>
+                            <input
+                              type="time"
+                              value={memorialDetails.service.time}
+                              onChange={(e) =>
+                                setMemorialDetails({
+                                  ...memorialDetails,
+                                  service: {
+                                    ...memorialDetails.service,
+                                    time: e.target.value,
+                                  },
+                                })
+                              }
+                              className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Location
+                          </label>
+                          <input
+                            type="text"
+                            value={memorialDetails.service.location}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                service: {
+                                  ...memorialDetails.service,
+                                  location: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Additional Details
+                          </label>
+                          <textarea
+                            value={memorialDetails.service.details}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                service: {
+                                  ...memorialDetails.service,
+                                  details: e.target.value,
+                                },
+                              })
+                            }
+                            rows={3}
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Wake Details */}
+                    <div className="border-2 border-gold-primary rounded-md p-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Wake Details
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Date
+                            </label>
+                            <input
+                              type="date"
+                              value={memorialDetails.wake.date}
+                              onChange={(e) =>
+                                setMemorialDetails({
+                                  ...memorialDetails,
+                                  wake: {
+                                    ...memorialDetails.wake,
+                                    date: e.target.value,
+                                  },
+                                })
+                              }
+                              className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Time
+                            </label>
+                            <input
+                              type="time"
+                              value={memorialDetails.wake.time}
+                              onChange={(e) =>
+                                setMemorialDetails({
+                                  ...memorialDetails,
+                                  wake: {
+                                    ...memorialDetails.wake,
+                                    time: e.target.value,
+                                  },
+                                })
+                              }
+                              className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Location
+                          </label>
+                          <input
+                            type="text"
+                            value={memorialDetails.wake.location}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                wake: {
+                                  ...memorialDetails.wake,
+                                  location: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Additional Details
+                          </label>
+                          <textarea
+                            value={memorialDetails.wake.details}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                wake: {
+                                  ...memorialDetails.wake,
+                                  details: e.target.value,
+                                },
+                              })
+                            }
+                            rows={3}
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Final Resting Place */}
+                    <div className="border-2 border-gold-primary rounded-md p-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Final Resting Place
+                      </h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Name of Cemetery/Memorial
+                          </label>
+                          <input
+                            type="text"
+                            value={memorialDetails.finalRestingPlace.name}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                finalRestingPlace: {
+                                  ...memorialDetails.finalRestingPlace,
+                                  name: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Address
+                          </label>
+                          <input
+                            type="text"
+                            value={memorialDetails.finalRestingPlace.address}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                finalRestingPlace: {
+                                  ...memorialDetails.finalRestingPlace,
+                                  address: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Plot/Section
+                          </label>
+                          <input
+                            type="text"
+                            value={memorialDetails.finalRestingPlace.plot}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                finalRestingPlace: {
+                                  ...memorialDetails.finalRestingPlace,
+                                  plot: e.target.value,
+                                },
+                              })
+                            }
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Additional Details
+                          </label>
+                          <textarea
+                            value={memorialDetails.finalRestingPlace.details}
+                            onChange={(e) =>
+                              setMemorialDetails({
+                                ...memorialDetails,
+                                finalRestingPlace: {
+                                  ...memorialDetails.finalRestingPlace,
+                                  details: e.target.value,
+                                },
+                              })
+                            }
+                            rows={3}
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Eulogy
+                      </label>
+                      <textarea
+                        value={memorialDetails.eulogy}
+                        onChange={(e) =>
+                          setMemorialDetails({
+                            ...memorialDetails,
+                            eulogy: e.target.value,
+                          })
+                        }
+                        rows={6}
+                        placeholder="Enter the eulogy text..."
+                        className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Order of Service
+                      </label>
+                      <textarea
+                        value={memorialDetails.orderOfService}
+                        onChange={(e) =>
+                          setMemorialDetails({
+                            ...memorialDetails,
+                            orderOfService: e.target.value,
+                          })
+                        }
+                        rows={6}
+                        placeholder="Enter the order of service..."
+                        className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Family Message
+                      </label>
+                      <textarea
+                        value={memorialDetails.familyMessage}
+                        onChange={(e) =>
+                          setMemorialDetails({
+                            ...memorialDetails,
+                            familyMessage: e.target.value,
+                          })
+                        }
+                        rows={4}
+                        placeholder="Enter a message from the family..."
+                        className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Memorial Video URL
+                      </label>
+                      <input
+                        type="url"
+                        value={memorialDetails.memorialVideo}
+                        onChange={(e) =>
+                          setMemorialDetails({
+                            ...memorialDetails,
+                            memorialVideo: e.target.value,
+                          })
+                        }
+                        placeholder="Enter the URL of the memorial video..."
+                        className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tributes
+                      </label>
+                      <textarea
+                        value={memorialDetails.tributes}
+                        onChange={(e) =>
+                          setMemorialDetails({
+                            ...memorialDetails,
+                            tributes: e.target.value,
+                          })
+                        }
+                        rows={6}
+                        placeholder="Enter tributes from friends and family..."
+                        className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Message from Honouree
+                      </label>
+                      <textarea
+                        value={memorialDetails.messageFromHonouree}
+                        onChange={(e) =>
+                          setMemorialDetails({
+                            ...memorialDetails,
+                            messageFromHonouree: e.target.value,
+                          })
+                        }
+                        rows={4}
+                        placeholder="Enter any final message from the honouree..."
+                        className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Media Items */}
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-semibold text-gray-900">
-                      Media Items
+                      Gallery
                     </h2>
                     <button
                       type="button"
@@ -757,7 +1538,7 @@ export default function CreateAPage() {
                               handleMediaItemChange(
                                 index,
                                 "type",
-                                e.target.value as "image" | "video" | "audio"
+                                e.target.value as "image" | "video"
                               )
                             }
                             required
@@ -765,7 +1546,6 @@ export default function CreateAPage() {
                           >
                             <option value="image">Image</option>
                             <option value="video">Video</option>
-                            <option value="audio">Audio</option>
                           </select>
                         </div>
 
@@ -781,11 +1561,7 @@ export default function CreateAPage() {
                                 handleMediaItemChange(index, "file", file);
                             }}
                             accept={
-                              item.type === "image"
-                                ? "image/*"
-                                : item.type === "video"
-                                ? "video/*"
-                                : "audio/*"
+                              item.type === "image" ? "image/*" : "video/*"
                             }
                             required
                             className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
@@ -849,6 +1625,245 @@ export default function CreateAPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Update Sound Clips section */}
+                <div className="space-y-6 mt-8">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-semibold text-gray-900">
+                      Sound Clips
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setShowSoundClipForm(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gold-primary hover:bg-gold-primary/90"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Sound Clip
+                    </button>
+                  </div>
+
+                  {soundClips.map((clip, index) => (
+                    <div
+                      key={index}
+                      className="p-4 border-2 border-gold-primary rounded-md"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-medium text-gray-900">
+                          Sound Clip {index + 1}
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSoundClips(
+                              soundClips.filter((_, i) => i !== index)
+                            );
+                          }}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Title *
+                          </label>
+                          <input
+                            type="text"
+                            value={clip.title}
+                            onChange={(e) => {
+                              const newClips = [...soundClips];
+                              newClips[index].title = e.target.value;
+                              setSoundClips(newClips);
+                            }}
+                            required
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Audio File *
+                          </label>
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const newClips = [...soundClips];
+                                newClips[index].file = file;
+                                setSoundClips(newClips);
+                              }
+                            }}
+                            required
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Date Recorded *
+                          </label>
+                          <input
+                            type="date"
+                            value={clip.dateRecorded}
+                            onChange={(e) => {
+                              const newClips = [...soundClips];
+                              newClips[index].dateRecorded = e.target.value;
+                              setSoundClips(newClips);
+                            }}
+                            required
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            value={clip.description}
+                            onChange={(e) => {
+                              const newClips = [...soundClips];
+                              newClips[index].description = e.target.value;
+                              setSoundClips(newClips);
+                            }}
+                            rows={3}
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Add New Sound Clip Form - Only shown when showSoundClipForm is true */}
+                  {showSoundClipForm && (
+                    <div className="border-2 border-gold-primary rounded-md p-4">
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-lg font-medium text-gray-900">
+                          Add New Sound Clip
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowSoundClipForm(false);
+                            setNewSoundClip({
+                              file: new File([], ""),
+                              dateRecorded: "",
+                              title: "",
+                              description: "",
+                            });
+                          }}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Title *
+                          </label>
+                          <input
+                            type="text"
+                            value={newSoundClip.title}
+                            onChange={(e) =>
+                              setNewSoundClip({
+                                ...newSoundClip,
+                                title: e.target.value,
+                              })
+                            }
+                            placeholder="Enter a title for the sound clip"
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Audio File *
+                          </label>
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setNewSoundClip({ ...newSoundClip, file });
+                              }
+                            }}
+                            required
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Date Recorded *
+                          </label>
+                          <input
+                            type="date"
+                            value={newSoundClip.dateRecorded}
+                            onChange={(e) =>
+                              setNewSoundClip({
+                                ...newSoundClip,
+                                dateRecorded: e.target.value,
+                              })
+                            }
+                            required
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            value={newSoundClip.description}
+                            onChange={(e) =>
+                              setNewSoundClip({
+                                ...newSoundClip,
+                                description: e.target.value,
+                              })
+                            }
+                            rows={3}
+                            placeholder="Enter a description for the sound clip"
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                          />
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                newSoundClip.file.size > 0 &&
+                                newSoundClip.title.trim()
+                              ) {
+                                setSoundClips([
+                                  ...soundClips,
+                                  { ...newSoundClip },
+                                ]);
+                                setNewSoundClip({
+                                  file: new File([], ""),
+                                  dateRecorded: "",
+                                  title: "",
+                                  description: "",
+                                });
+                                setShowSoundClipForm(false);
+                              }
+                            }}
+                            className="px-4 py-2 bg-gold-primary text-white rounded-md hover:bg-gold-primary/90"
+                          >
+                            Add Sound Clip
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Events */}
@@ -968,20 +1983,48 @@ export default function CreateAPage() {
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Description
+                            Google Maps GEO Code
                           </label>
-                          <textarea
-                            value={event.description}
+                          <input
+                            type="text"
+                            value={event.geoCode}
                             onChange={(e) =>
                               handleEventChange(
                                 index,
-                                "description",
+                                "geoCode",
                                 e.target.value
                               )
                             }
-                            rows={3}
-                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                            placeholder="e.g., 40.7128,-74.0060"
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
                           />
+                          <p className="mt-1 text-sm text-gray-500">
+                            Enter the latitude and longitude coordinates for the
+                            event location
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            External Event URL
+                          </label>
+                          <input
+                            type="url"
+                            value={event.externalUrl}
+                            onChange={(e) =>
+                              handleEventChange(
+                                index,
+                                "externalUrl",
+                                e.target.value
+                              )
+                            }
+                            placeholder="e.g., https://facebook.com/event/123 or https://zoom.us/j/123456"
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                          <p className="mt-1 text-sm text-gray-500">
+                            Add a link to the event on Facebook, Zoom, or other
+                            platforms
+                          </p>
                         </div>
 
                         <div>
@@ -1001,6 +2044,61 @@ export default function CreateAPage() {
                             className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
                           />
                         </div>
+
+                        {/* Add RSVP list viewer for event creators */}
+                        {event.rsvps && event.rsvps.length > 0 && (
+                          <div className="mt-4">
+                            <h4 className="text-lg font-medium text-gray-900 mb-2">
+                              RSVP List
+                            </h4>
+                            <div className="border-2 border-gold-primary rounded-md p-4">
+                              <table className="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                  <tr>
+                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                      Name
+                                    </th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                      Email
+                                    </th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                      Attending
+                                    </th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                      Message
+                                    </th>
+                                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                                      Date
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                  {event.rsvps.map((rsvp, rsvpIndex) => (
+                                    <tr key={rsvpIndex}>
+                                      <td className="px-4 py-2 text-sm text-gray-900">
+                                        {rsvp.name}
+                                      </td>
+                                      <td className="px-4 py-2 text-sm text-gray-900">
+                                        {rsvp.email}
+                                      </td>
+                                      <td className="px-4 py-2 text-sm text-gray-900">
+                                        {rsvp.attending ? "Yes" : "No"}
+                                      </td>
+                                      <td className="px-4 py-2 text-sm text-gray-900">
+                                        {rsvp.message}
+                                      </td>
+                                      <td className="px-4 py-2 text-sm text-gray-900">
+                                        {new Date(
+                                          rsvp.date
+                                        ).toLocaleDateString()}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1045,25 +2143,66 @@ export default function CreateAPage() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Relationship Type *
                           </label>
-                          <select
-                            value={relationship.type}
-                            onChange={(e) =>
-                              handleRelationshipChange(
-                                index,
-                                "type",
-                                e.target.value
-                              )
-                            }
-                            required
-                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
-                          >
-                            <option value="">Select a relationship type</option>
-                            {RELATIONSHIP_TYPES.map((type) => (
-                              <option key={type} value={type}>
-                                {type}
+                          <div className="space-y-2">
+                            <select
+                              value={relationship.type}
+                              onChange={(e) => {
+                                if (e.target.value === "custom") {
+                                  setShowCustomRelationshipInput(true);
+                                } else {
+                                  setShowCustomRelationshipInput(false);
+                                  handleRelationshipChange(
+                                    index,
+                                    "type",
+                                    e.target.value
+                                  );
+                                }
+                              }}
+                              required
+                              className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                            >
+                              <option value="">
+                                Select a relationship type
                               </option>
-                            ))}
-                          </select>
+                              {RELATIONSHIP_TYPES.map((type) => (
+                                <option key={type} value={type}>
+                                  {type}
+                                </option>
+                              ))}
+                              <option value="custom">Add Custom Type</option>
+                            </select>
+
+                            {showCustomRelationshipInput && (
+                              <div className="flex space-x-2">
+                                <input
+                                  type="text"
+                                  value={customRelationshipType}
+                                  onChange={(e) =>
+                                    setCustomRelationshipType(e.target.value)
+                                  }
+                                  placeholder="Enter custom relationship type"
+                                  className="flex-1 px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (customRelationshipType.trim()) {
+                                      handleRelationshipChange(
+                                        index,
+                                        "type",
+                                        customRelationshipType.trim()
+                                      );
+                                      setCustomRelationshipType("");
+                                      setShowCustomRelationshipInput(false);
+                                    }
+                                  }}
+                                  className="px-4 py-2 bg-gold-primary text-white rounded-md hover:bg-gold-primary/90"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div>
@@ -1091,9 +2230,27 @@ export default function CreateAPage() {
 
                 {/* General Knowledge */}
                 <div className="space-y-6">
-                  <h2 className="text-2xl font-semibold text-gray-900">
-                    General Knowledge
-                  </h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-semibold text-gray-900">
+                      General Knowledge
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (newCustomField.label.trim()) {
+                          setCustomFields([
+                            ...customFields,
+                            { ...newCustomField },
+                          ]);
+                          setNewCustomField({ label: "", value: "" });
+                        }
+                      }}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gold-primary hover:bg-gold-primary/90"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Custom Field
+                    </button>
+                  </div>
 
                   <div>
                     <label
@@ -1147,6 +2304,84 @@ export default function CreateAPage() {
                       placeholder="What were the honouree's spiritual beliefs?"
                       className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
                     />
+                  </div>
+
+                  {/* Custom Fields */}
+                  <div className="space-y-4">
+                    {customFields.map((field, index) => (
+                      <div key={index} className="relative">
+                        <div className="flex justify-between items-start mb-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            {field.label}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomFields(
+                                customFields.filter((_, i) => i !== index)
+                              );
+                            }}
+                            className="text-red-500 hover:text-red-600"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+                        <textarea
+                          value={field.value}
+                          onChange={(e) => {
+                            const newFields = [...customFields];
+                            newFields[index].value = e.target.value;
+                            setCustomFields(newFields);
+                          }}
+                          rows={4}
+                          placeholder={`Enter ${field.label.toLowerCase()}...`}
+                          className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                        />
+                      </div>
+                    ))}
+
+                    {/* Add New Custom Field Form */}
+                    <div className="border-2 border-gold-primary rounded-md p-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Add Custom Field
+                      </h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Field Label
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomField.label}
+                            onChange={(e) =>
+                              setNewCustomField({
+                                ...newCustomField,
+                                label: e.target.value,
+                              })
+                            }
+                            placeholder="e.g., Hobbies, Achievements, Life Lessons"
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Field Value
+                          </label>
+                          <textarea
+                            value={newCustomField.value}
+                            onChange={(e) =>
+                              setNewCustomField({
+                                ...newCustomField,
+                                value: e.target.value,
+                              })
+                            }
+                            rows={4}
+                            placeholder="Enter the content for this field..."
+                            className="w-full px-4 py-2 border-2 border-gold-primary rounded-md focus:ring-gold-primary focus:border-gold-primary resize-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1203,10 +2438,21 @@ export default function CreateAPage() {
                   ))}
                 </div>
 
-                <div className="flex justify-center">
+                <div className="flex flex-col items-center space-y-4">
+                  {error && (
+                    <div className="w-full max-w-4xl p-4 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-red-600 text-center">{error}</p>
+                    </div>
+                  )}
+
                   <div
-                    className={`relative inline-flex items-center justify-center px-16 py-4 text-base font-medium text-purple-primary transition-transform hover:scale-105 cursor-pointer ${
-                      isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                    className={`relative inline-flex items-center justify-center px-16 py-4 text-base font-medium text-purple-primary transition-transform hover:scale-105 ${
+                      isSubmitting ||
+                      ((formData.pageType === "biography" ||
+                        formData.pageType === "memorial") &&
+                        !isNextOfKin)
+                        ? "opacity-50 cursor-not-allowed"
+                        : "cursor-pointer"
                     }`}
                   >
                     <div className="absolute inset-0">
@@ -1220,9 +2466,14 @@ export default function CreateAPage() {
                     <button
                       type="submit"
                       className="relative z-10"
-                      disabled={isSubmitting}
+                      disabled={
+                        isSubmitting ||
+                        ((formData.pageType === "biography" ||
+                          formData.pageType === "memorial") &&
+                          !isNextOfKin)
+                      }
                     >
-                      {isSubmitting ? "Creating..." : "Create Legacy Page"}
+                      {isSubmitting ? "Creating..." : "Create a Legacy Page"}
                     </button>
                   </div>
                 </div>

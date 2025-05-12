@@ -12,6 +12,9 @@ import {
   MapPin,
   Trash2,
   Users,
+  BookOpen,
+  Building2,
+  Church,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -55,6 +58,30 @@ interface Insight {
   message: string;
 }
 
+interface MemorialDetails {
+  id: string;
+  funeralWishes: string | null;
+  obituary: string | null;
+  funeralHome: string | null;
+  viewingDate: string | null;
+  viewingTime: string | null;
+  viewingLocation: string | null;
+  viewingDetails: string | null;
+  processionDate: string | null;
+  processionTime: string | null;
+  processionLocation: string | null;
+  processionDetails: string | null;
+  serviceDate: string | null;
+  serviceTime: string | null;
+  serviceLocation: string | null;
+  serviceDetails: string | null;
+  finalRestingPlace: string | null;
+  finalRestingAddress: string | null;
+  finalRestingPlot: string | null;
+  finalRestingDetails: string | null;
+  eulogy: string | null;
+}
+
 interface LegacyPage {
   id: string;
   pageType: string;
@@ -75,6 +102,7 @@ interface LegacyPage {
   events: Event[];
   relationships: Relationship[];
   insights: Insight[];
+  memorialDetails: MemorialDetails | null;
 }
 
 export default function LegacyPageView({ id }: { id: string }) {
@@ -501,6 +529,196 @@ export default function LegacyPageView({ id }: { id: string }) {
                         </p>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Memorial Details */}
+              {page.pageType === "memorial" && page.memorialDetails && (
+                <div className="mb-12 p-6 bg-white rounded-lg border-4 border-gold-primary shadow-lg">
+                  <h3 className="text-2xl font-semibold text-gray-800 mb-6">
+                    Memorial Details
+                  </h3>
+                  <div className="space-y-6">
+                    {page.memorialDetails.funeralWishes && (
+                      <div className="p-6 bg-gray-50 rounded-lg border-2 border-gold-primary">
+                        <h4 className="text-xl font-medium text-gray-800 mb-3 flex items-center gap-2">
+                          <Heart size={24} className="text-gold-primary" />
+                          Funeral Wishes
+                        </h4>
+                        <p className="text-gray-600 leading-relaxed">
+                          {page.memorialDetails.funeralWishes}
+                        </p>
+                      </div>
+                    )}
+
+                    {page.memorialDetails.obituary && (
+                      <div className="p-6 bg-gray-50 rounded-lg border-2 border-gold-primary">
+                        <h4 className="text-xl font-medium text-gray-800 mb-3 flex items-center gap-2">
+                          <BookOpen size={24} className="text-gold-primary" />
+                          Obituary
+                        </h4>
+                        <p className="text-gray-600 leading-relaxed">
+                          {page.memorialDetails.obituary}
+                        </p>
+                      </div>
+                    )}
+
+                    {page.memorialDetails.funeralHome && (
+                      <div className="p-6 bg-gray-50 rounded-lg border-2 border-gold-primary">
+                        <h4 className="text-xl font-medium text-gray-800 mb-3 flex items-center gap-2">
+                          <Building2 size={24} className="text-gold-primary" />
+                          Funeral Home
+                        </h4>
+                        <p className="text-gray-600 leading-relaxed">
+                          {page.memorialDetails.funeralHome}
+                        </p>
+                      </div>
+                    )}
+
+                    {(page.memorialDetails.viewingDate ||
+                      page.memorialDetails.viewingTime ||
+                      page.memorialDetails.viewingLocation) && (
+                      <div className="p-6 bg-gray-50 rounded-lg border-2 border-gold-primary">
+                        <h4 className="text-xl font-medium text-gray-800 mb-3 flex items-center gap-2">
+                          <Calendar size={24} className="text-gold-primary" />
+                          Viewing Details
+                        </h4>
+                        <div className="space-y-2 text-gray-600">
+                          {page.memorialDetails.viewingDate && (
+                            <p>
+                              Date:{" "}
+                              {formatDate(page.memorialDetails.viewingDate)}
+                            </p>
+                          )}
+                          {page.memorialDetails.viewingTime && (
+                            <p>Time: {page.memorialDetails.viewingTime}</p>
+                          )}
+                          {page.memorialDetails.viewingLocation && (
+                            <p>
+                              Location: {page.memorialDetails.viewingLocation}
+                            </p>
+                          )}
+                          {page.memorialDetails.viewingDetails && (
+                            <p className="mt-2">
+                              {page.memorialDetails.viewingDetails}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {(page.memorialDetails.processionDate ||
+                      page.memorialDetails.processionTime ||
+                      page.memorialDetails.processionLocation) && (
+                      <div className="p-6 bg-gray-50 rounded-lg border-2 border-gold-primary">
+                        <h4 className="text-xl font-medium text-gray-800 mb-3 flex items-center gap-2">
+                          <Users size={24} className="text-gold-primary" />
+                          Procession Details
+                        </h4>
+                        <div className="space-y-2 text-gray-600">
+                          {page.memorialDetails.processionDate && (
+                            <p>
+                              Date:{" "}
+                              {formatDate(page.memorialDetails.processionDate)}
+                            </p>
+                          )}
+                          {page.memorialDetails.processionTime && (
+                            <p>Time: {page.memorialDetails.processionTime}</p>
+                          )}
+                          {page.memorialDetails.processionLocation && (
+                            <p>
+                              Location:{" "}
+                              {page.memorialDetails.processionLocation}
+                            </p>
+                          )}
+                          {page.memorialDetails.processionDetails && (
+                            <p className="mt-2">
+                              {page.memorialDetails.processionDetails}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {(page.memorialDetails.serviceDate ||
+                      page.memorialDetails.serviceTime ||
+                      page.memorialDetails.serviceLocation) && (
+                      <div className="p-6 bg-gray-50 rounded-lg border-2 border-gold-primary">
+                        <h4 className="text-xl font-medium text-gray-800 mb-3 flex items-center gap-2">
+                          <Church size={24} className="text-gold-primary" />
+                          Service Details
+                        </h4>
+                        <div className="space-y-2 text-gray-600">
+                          {page.memorialDetails.serviceDate && (
+                            <p>
+                              Date:{" "}
+                              {formatDate(page.memorialDetails.serviceDate)}
+                            </p>
+                          )}
+                          {page.memorialDetails.serviceTime && (
+                            <p>Time: {page.memorialDetails.serviceTime}</p>
+                          )}
+                          {page.memorialDetails.serviceLocation && (
+                            <p>
+                              Location: {page.memorialDetails.serviceLocation}
+                            </p>
+                          )}
+                          {page.memorialDetails.serviceDetails && (
+                            <p className="mt-2">
+                              {page.memorialDetails.serviceDetails}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {(page.memorialDetails.finalRestingPlace ||
+                      page.memorialDetails.finalRestingAddress ||
+                      page.memorialDetails.finalRestingPlot) && (
+                      <div className="p-6 bg-gray-50 rounded-lg border-2 border-gold-primary">
+                        <h4 className="text-xl font-medium text-gray-800 mb-3 flex items-center gap-2">
+                          <MapPin size={24} className="text-gold-primary" />
+                          Final Resting Place
+                        </h4>
+                        <div className="space-y-2 text-gray-600">
+                          {page.memorialDetails.finalRestingPlace && (
+                            <p>
+                              Place: {page.memorialDetails.finalRestingPlace}
+                            </p>
+                          )}
+                          {page.memorialDetails.finalRestingAddress && (
+                            <p>
+                              Address:{" "}
+                              {page.memorialDetails.finalRestingAddress}
+                            </p>
+                          )}
+                          {page.memorialDetails.finalRestingPlot && (
+                            <p>
+                              Plot/Section:{" "}
+                              {page.memorialDetails.finalRestingPlot}
+                            </p>
+                          )}
+                          {page.memorialDetails.finalRestingDetails && (
+                            <p className="mt-2">
+                              {page.memorialDetails.finalRestingDetails}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {page.memorialDetails.eulogy && (
+                      <div className="p-6 bg-gray-50 rounded-lg border-2 border-gold-primary">
+                        <h4 className="text-xl font-medium text-gray-800 mb-3 flex items-center gap-2">
+                          <BookOpen size={24} className="text-gold-primary" />
+                          Eulogy
+                        </h4>
+                        <p className="text-gray-600 leading-relaxed">
+                          {page.memorialDetails.eulogy}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

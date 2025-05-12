@@ -153,6 +153,56 @@ export async function POST(request: Request) {
       });
     }
 
+    // Create memorial details if it's a memorial page
+    if (pageType === "memorial") {
+      const funeralWishes = formData.get("funeralWishes") as string;
+      const obituary = formData.get("obituary") as string;
+      const funeralHome = formData.get("funeralHome") as string;
+      const viewingDate = formData.get("viewingDate") as string;
+      const viewingTime = formData.get("viewingTime") as string;
+      const viewingLocation = formData.get("viewingLocation") as string;
+      const viewingDetails = formData.get("viewingDetails") as string;
+      const processionDate = formData.get("processionDate") as string;
+      const processionTime = formData.get("processionTime") as string;
+      const processionLocation = formData.get("processionLocation") as string;
+      const processionDetails = formData.get("processionDetails") as string;
+      const serviceDate = formData.get("serviceDate") as string;
+      const serviceTime = formData.get("serviceTime") as string;
+      const serviceLocation = formData.get("serviceLocation") as string;
+      const serviceDetails = formData.get("serviceDetails") as string;
+      const finalRestingPlace = formData.get("finalRestingPlace") as string;
+      const finalRestingAddress = formData.get("finalRestingAddress") as string;
+      const finalRestingPlot = formData.get("finalRestingPlot") as string;
+      const finalRestingDetails = formData.get("finalRestingDetails") as string;
+      const eulogy = formData.get("eulogy") as string;
+
+      await prisma.memorialDetails.create({
+        data: {
+          funeralWishes,
+          obituary,
+          funeralHome,
+          viewingDate: viewingDate ? new Date(viewingDate) : null,
+          viewingTime,
+          viewingLocation,
+          viewingDetails,
+          processionDate: processionDate ? new Date(processionDate) : null,
+          processionTime,
+          processionLocation,
+          processionDetails,
+          serviceDate: serviceDate ? new Date(serviceDate) : null,
+          serviceTime,
+          serviceLocation,
+          serviceDetails,
+          finalRestingPlace,
+          finalRestingAddress,
+          finalRestingPlot,
+          finalRestingDetails,
+          eulogy,
+          legacyPageId: pageId,
+        },
+      });
+    }
+
     // Create media items
     const mediaItems = formData.getAll("mediaItems[0][type]");
     for (let i = 0; i < mediaItems.length; i++) {

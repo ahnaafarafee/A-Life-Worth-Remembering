@@ -44,6 +44,7 @@ model LegacyPage {
   events           Event[]
   relationships    Relationship[]
   insights         Insight[]
+  memorialDetails  MemorialDetails?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 }
@@ -104,4 +105,32 @@ model Insight {
   legacyPage   LegacyPage @relation(fields: [legacyPageId], references: [id])
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+model MemorialDetails {
+  id                  String     @id @default(uuid())
+  funeralWishes       String?    @db.Text
+  obituary            String?    @db.Text
+  funeralHome         String?
+  viewingDate         DateTime?
+  viewingTime         String?
+  viewingLocation     String?
+  viewingDetails      String?    @db.Text
+  processionDate      DateTime?
+  processionTime      String?
+  processionLocation  String?
+  processionDetails   String?    @db.Text
+  serviceDate         DateTime?
+  serviceTime         String?
+  serviceLocation     String?
+  serviceDetails      String?    @db.Text
+  finalRestingPlace   String?
+  finalRestingAddress String?
+  finalRestingPlot    String?
+  finalRestingDetails String?    @db.Text
+  eulogy              String?    @db.Text
+  legacyPageId        String     @unique
+  legacyPage          LegacyPage @relation(fields: [legacyPageId], references: [id])
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 }
